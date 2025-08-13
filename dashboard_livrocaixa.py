@@ -14,7 +14,7 @@ arquivo = 'Livro-Caixa.xlsx'
 aba = 'Livro Caixa'
 META_MENSAL = 100000
 
-# Lê os dados
+# Leitura dos dados
 df = pd.read_excel(arquivo, sheet_name=aba)
 df['Data do Pedido'] = pd.to_datetime(df['Data do Pedido'], errors='coerce')
 df['AnoMes'] = df['Data do Pedido'].dt.strftime('%Y-%m')
@@ -28,14 +28,19 @@ def dias_uteis_restantes(mes_ano):
     hoje = datetime.now().date()
     ano, mes = map(int, mes_ano.split('-'))
     primeiro = datetime(ano, mes, 1).date()
-    ultimo = datetime(ano + (mes // 12), (mes % 12) + 1, 1).date() - timedelta(days=1)
+    # Cálculo do último dia do mês
+    if mes == 12:
+        ultimo = datetime(ano + 1, 1, 1).date() - timedelta(days=1)
+    else:
+        ultimo = datetime(ano, mes + 1, 1).date() - timedelta(days=1)
     inicio = max(hoje, primeiro) if mes == hoje.month and ano == hoje.year else primeiro
     return int(pd.bdate_range(inicio, ultimo).size)
 
 def generate_client_colors(n):
     import matplotlib.pyplot as plt
     cmap = plt.get_cmap('tab20')
-    cores = [f"rgba({int(r*255)},{int(g*255)},{int(b*255)},0.85)" for r,g,b,_ in cmap.colors[:n]]
+    # Corrigido para desempacotar somente 3 valores RGB
+    cores = [f"rgba({int(r*255)},{int(g*255)},{int(b*255)},0.85)" for r, g, b in cmap.colors[:n]]
     return (cores * ((n // len(cores)) + 1))[:n]
 
 app = dash.Dash(__name__)
@@ -113,8 +118,15 @@ def update_dashboard(mes):
     comissao = dados_mes['Comissão'].sum()
     quantidade = dados_mes['Quantidade'].sum()
     pedidos = len(dados_mes)
-    dias_faltam = ((dados_mes['Data do Pedido'].max() or hoje) - hoje).days
+    # Calcula os dias restantes para final do mês selecionado
+    if mes == hoje.strftime('%Y-%m'):
+        ultimo_dia = (hoje.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        dias_faltam = (ultimo_dia - hoje).days
+    else:
+        data_final = pd.to_datetime(mes + "-01") + pd.offsets.MonthEnd(0)
+        dias_faltam = (data_final - pd.to_datetime(mes + "-01")).days
     dias_faltam = max(dias_faltam, 0)
+
     dias_uteis = dias_uteis_restantes(mes)
     meta_diaria_uteis = valor_restante / dias_uteis if dias_uteis > 0 else 0
     meta_percent = (valor_pago / META_MENSAL * 100) if META_MENSAL else 0
@@ -190,7 +202,6 @@ def update_dashboard(mes):
 
     return kpis, [barra_progresso], fig_receita, fig_comissao, fig_cliente
 
-# ===== Rodando local ou no Render =====
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8050))
     app.run(host='0.0.0.0', port=port, debug=True)
