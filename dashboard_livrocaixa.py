@@ -38,18 +38,21 @@ def generate_client_colors(n):
     cores = [f"rgba({int(r*255)},{int(g*255)},{int(b*255)},0.85)" for r,g,b,_ in cmap.colors[:n]]
     return (cores * ((n // len(cores)) + 1))[:n]
 
-# App Dash
 app = dash.Dash(__name__)
 server = app.server
 app.title = "Dashboard Livro Caixa"
 
-# ===== Layout =====
 app.layout = html.Div(
     style={
-        'background': '#181a1e', 'color': '#fafafa',
+        'background': 'radial-gradient(ellipse at center, #181a1e 70%, #121217 100%)',
+        'color': '#fafafa',
         'fontFamily': 'Segoe UI, Arial, sans-serif',
-        'minHeight': '100vh', 'margin': '0', 'padding': '0',
-        'display': 'flex', 'justifyContent': 'center'
+        'minHeight': '100vh',
+        'minWidth': '100vw',
+        'margin': '0',
+        'padding': '0',
+        'display': 'flex',
+        'justifyContent': 'center',
     },
     children=[
         html.Div(
@@ -93,7 +96,6 @@ app.layout = html.Div(
     ]
 )
 
-# ===== Callback =====
 @app.callback(
     Output('kpis', 'children'),
     Output('meta-row', 'children'),
@@ -144,7 +146,9 @@ def update_dashboard(mes):
                        'borderRadius': '12px', 'background': '#232526',
                        'boxShadow': '0 2px 5px #0008'}
     barra_filled = {'height': '100%', 'width': f"{min(meta_percent, 100):.2f}%",
-                    'background': 'linear-gradient(90deg,#00FFB4,#00DD8D 80%)'}
+                    'background': 'linear-gradient(90deg,#00FFB4,#00DD8D 80%)',
+                    'borderRadius': '12px 0 0 12px',
+                    'transition': 'width .8s cubic-bezier(.25,.1,.4,1.7)'}
     barra_label = {'position': 'absolute', 'top': '0', 'width': '100%',
                    'textAlign': 'center', 'fontWeight': 'bold', 'lineHeight': '23px',
                    'color': '#111'}
@@ -180,7 +184,9 @@ def update_dashboard(mes):
                                      hovertemplate='%{y}: R$ %{x:,.2f}<extra></extra>'))
     fig_cliente.update_layout(autosize=False, height=400, width=560,
                               title="🏅 Ranking TOP 10 Clientes",
-                              template='plotly_dark')
+                              template='plotly_dark',
+                              plot_bgcolor='#171C24',
+                              paper_bgcolor='rgba(0,0,0,0)')
 
     return kpis, [barra_progresso], fig_receita, fig_comissao, fig_cliente
 
